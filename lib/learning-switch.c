@@ -455,6 +455,12 @@ lswitch_process_packet(struct lswitch *sw, const struct ofpbuf *msg)
     case OFPTYPE_NXT_TLV_TABLE_MOD:
     case OFPTYPE_NXT_TLV_TABLE_REQUEST:
     case OFPTYPE_NXT_TLV_TABLE_REPLY:
+#ifdef ENABLE_CN_STATS
+    case OFPTYPE_NETLINK_REQUEST:
+    case OFPTYPE_NETLINK_REPLY:
+    case OFPTYPE_NETLINK_DISABLE:
+    case OFPTYPE_NETLINK_ENABLE:
+#endif
     default:
         if (VLOG_IS_DBG_ENABLED()) {
             char *s = ofp_to_string(msg->data, msg->size, 2);

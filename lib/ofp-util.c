@@ -9344,6 +9344,12 @@ ofputil_is_bundlable(enum ofptype type)
     case OFPTYPE_REQUESTFORWARD:
     case OFPTYPE_NXT_TLV_TABLE_REQUEST:
     case OFPTYPE_NXT_TLV_TABLE_REPLY:
+#ifdef ENABLE_CN_STATS
+    case OFPTYPE_NETLINK_REQUEST:
+    case OFPTYPE_NETLINK_REPLY:
+    case OFPTYPE_NETLINK_ENABLE:
+    case OFPTYPE_NETLINK_DISABLE:
+#endif
         break;
     }
 

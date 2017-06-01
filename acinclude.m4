@@ -551,7 +551,7 @@ AC_DEFUN([OVS_CHECK_LINUX_COMPAT], [
 
   OVS_GREP_IFELSE([$KSRC/include/linux/utsrelease.h], [el6],
                   [OVS_DEFINE([HAVE_RHEL6_PER_CPU])])
-
+  OVS_DEFINE([K_ENABLE_CN_STATS])
   dnl Conntrack support, and therefore, IP fragment handling backport, should
   dnl only be enabled on kernels 3.10+. In future when OVS drops support for
   dnl kernels older than 3.10, this macro could be removed from the codebase.

@@ -38,6 +38,7 @@
  * of headers.
  */
 
+#include "cn_lib.h"
 #include "openvswitch/types.h"
 #include "ofp-errors.h"
 #include "util.h"
@@ -443,6 +444,20 @@ enum ofpraw {
 
     /* NXT 1.0+ (26): struct nx_tlv_table_reply, struct nx_tlv_map[]. */
     OFPRAW_NXT_TLV_TABLE_REPLY,
+
+    /* NXST 1.0+ (50): struct netlink_stats_request. */
+    OFPRAW_NXST_NETLINK_REQUEST,
+
+    /* NXST 1.0+ (50): struct netlink_stats_reply. */
+    OFPRAW_NXST_NETLINK_REPLY,
+
+    /* NXT 1.0+ (51): struct netlink_stats_disable. */
+    OFPRAW_NXT_NETLINK_DISABLE,
+
+    /* NXT 1.0+ (52): struct netlink_stats_enable. */
+    OFPRAW_NXT_NETLINK_ENABLE,
+
+
 };
 
 /* Decoding messages into OFPRAW_* values. */
@@ -647,6 +662,12 @@ enum ofptype {
                                          * OFPRAW_NXST_FLOW_MONITOR_REQUEST. */
     OFPTYPE_FLOW_MONITOR_STATS_REPLY,   /* OFPRAW_OFPST14_FLOW_MONITOR_REPLY.
                                          * OFPRAW_NXST_FLOW_MONITOR_REPLY. */
+
+    /* Classifier Node Statistics extensions. */
+    OFPTYPE_NETLINK_REQUEST,        /* OFPRAW_NXST_NETLINK_REQUEST. */
+    OFPTYPE_NETLINK_REPLY,          /* OFPRAW_NXST_NETLINK_REPLY. */
+    OFPTYPE_NETLINK_DISABLE,        /* OFPRAW_NXT_NETLINK_DISABLE */
+    OFPTYPE_NETLINK_ENABLE,         /* OFPRAW_NXT_NETLINK_ENABLE */
 
     /* Nicira extensions. */
     OFPTYPE_SET_FLOW_FORMAT,      /* OFPRAW_NXT_SET_FLOW_FORMAT. */
