@@ -134,6 +134,8 @@ lib_libopenvswitch_la_SOURCES = \
 	lib/netflow.h \
 	lib/netlink.c \
 	lib/netlink.h \
+	lib/nlclient_stats.c \
+	lib/nlclient_stats.h \
 	lib/nx-match.c \
 	lib/nx-match.h \
 	lib/odp-execute.c \

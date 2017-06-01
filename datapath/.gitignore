@@ -5,3 +5,6 @@
 *.mod.c
 Module.symvers
 /distfiles
+.project
+/nbproject/*
+/nbproject/

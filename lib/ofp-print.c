@@ -3417,7 +3417,16 @@ ofp_to_string__(const struct ofp_header *oh, enum ofpraw raw,
     case OFPTYPE_NXT_TLV_TABLE_REPLY:
         ofp_print_tlv_table_reply(string, msg);
         break;
-
+#ifdef ENABLE_CN_STATS
+    case OFPTYPE_NETLINK_REQUEST:
+        break;
+    case OFPTYPE_NETLINK_DISABLE:
+        break;
+    case OFPTYPE_NETLINK_ENABLE:
+        break;
+    case OFPTYPE_NETLINK_REPLY:
+        break;
+#endif
     }
 }
 
