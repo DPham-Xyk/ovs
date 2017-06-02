@@ -26,6 +26,7 @@ AM_CPPFLAGS += -I $(top_srcdir)/include
 AM_CPPFLAGS += -I $(top_builddir)/include
 AM_CPPFLAGS += -I $(top_srcdir)/lib
 AM_CPPFLAGS += -I $(top_builddir)/lib
+AM_CPPFLAGS += -I/usr/include/libnl3/
 
 AM_CPPFLAGS += $(SSL_INCLUDES)
 

@@ -72,3 +72,6 @@ testsuite.tmp.orig
 /rpm/
 /openvswitch*.tar.gz
 /tests/lcov/
+/.project
+/0001-Reset-packet-count-on-dump.patch
+/0002-Added-a-endian-checker-when-sending-to-controller.patch
