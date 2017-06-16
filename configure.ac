@@ -82,6 +82,8 @@ AC_SEARCH_LIBS([pow], [m])
 AC_SEARCH_LIBS([clock_gettime], [rt])
 AC_SEARCH_LIBS([timer_create], [rt])
 AC_SEARCH_LIBS([pthread_create], [pthread])
+AC_SEARCH_LIBS([nlmsg_hdr], [nl-3])
+AC_SEARCH_LIBS([genl_connect], [nl-genl-3])
 AC_FUNC_STRERROR_R
 
 OVS_CHECK_ESX
@@ -171,6 +173,7 @@ OVS_CONDITIONAL_CC_OPTION([-Wno-unused], [HAVE_WNO_UNUSED])
 OVS_CONDITIONAL_CC_OPTION([-Wno-unused-parameter], [HAVE_WNO_UNUSED_PARAMETER])
 OVS_ENABLE_WERROR
 OVS_ENABLE_SPARSE
+OVS_ENABLE_CN_STATS
 
 AC_ARG_VAR(KARCH, [Kernel Architecture String])
 AC_SUBST(KARCH)

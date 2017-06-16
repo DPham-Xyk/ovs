@@ -13,6 +13,8 @@ ofproto_libofproto_la_LDFLAGS = \
 ofproto_libofproto_la_SOURCES = \
 	ofproto/bond.c \
 	ofproto/bond.h \
+	ofproto/cn_userspace.c \
+	ofproto/cn_userspace.h \
 	ofproto/collectors.c \
 	ofproto/collectors.h \
 	ofproto/connmgr.c \

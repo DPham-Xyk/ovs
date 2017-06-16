@@ -63,6 +63,10 @@
 #include "unixctl.h"
 #include "util.h"
 
+#ifdef ENABLE_CN_STATS
+#include "cn_userspace.h"
+#endif
+
 VLOG_DEFINE_THIS_MODULE(ofproto);
 
 COVERAGE_DEFINE(ofproto_flush);
@@ -7966,6 +7970,17 @@ handle_openflow__(struct ofconn *ofconn, const struct ofpbuf *msg)
 
     case OFPTYPE_CT_FLUSH_ZONE:
         return handle_nxt_ct_flush_zone(ofconn, oh);
+        
+#ifdef ENABLE_CN_STATS
+    case OFPTYPE_NETLINK_REQUEST:
+    	return handle_nxst_netlink_request(ofconn, oh);
+
+    case OFPTYPE_NETLINK_DISABLE:
+    	return handle_nxt_netlink_disable();
+
+    case OFPTYPE_NETLINK_ENABLE:
+    	return handle_nxt_netlink_enable(); 
+#endif
 
     case OFPTYPE_HELLO:
     case OFPTYPE_ERROR:
@@ -8002,6 +8017,9 @@ handle_openflow__(struct ofconn *ofconn, const struct ofpbuf *msg)
     case OFPTYPE_NXT_TLV_TABLE_REPLY:
     case OFPTYPE_IPFIX_BRIDGE_STATS_REPLY:
     case OFPTYPE_IPFIX_FLOW_STATS_REPLY:
+#ifdef ENABLE_CN_STATS
+    case OFPTYPE_NETLINK_REPLY:
+#endif
     default:
         if (ofpmsg_is_stat_request(oh)) {
             return OFPERR_OFPBRC_BAD_STAT;

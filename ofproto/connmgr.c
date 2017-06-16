@@ -42,6 +42,10 @@
 #include "timeval.h"
 #include "util.h"
 
+#ifdef ENABLE_CN_STATS
+#include "cn_userspace.h"
+#endif
+
 VLOG_DEFINE_THIS_MODULE(connmgr);
 static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(1, 5);
 
@@ -305,7 +309,7 @@ connmgr_destroy(struct connmgr *mgr)
     struct ofservice *ofservice, *next_ofservice;
     struct ofconn *ofconn, *next_ofconn;
     size_t i;
-
+         
     if (!mgr) {
         return;
     }
@@ -352,6 +356,14 @@ connmgr_run(struct connmgr *mgr,
     struct ofservice *ofservice;
     size_t i;
 
+#ifdef ENABLE_CN_STATS
+    struct stats_queue *queue_old;
+    struct ovs_list replies;
+    
+    nxst_stats_msg_init();
+    cn_init_queue(&replies);
+#endif
+
     if (mgr->in_band) {
         if (!in_band_run(mgr->in_band)) {
             in_band_destroy(mgr->in_band);
@@ -361,7 +373,15 @@ connmgr_run(struct connmgr *mgr,
 
     LIST_FOR_EACH_SAFE (ofconn, next_ofconn, node, &mgr->all_conns) {
         ofconn_run(ofconn, handle_openflow);
+#ifdef ENABLE_CN_STATS
+        cn_send_to_controller(ofconn, &queue_old, &replies);
+#endif
     }
+    
+#ifdef ENABLE_CN_STATS
+    cn_free_queue(&queue_old);
+#endif
+
     ofmonitor_run(mgr);
 
     /* Fail-open maintenance.  Do this after processing the ofconns since

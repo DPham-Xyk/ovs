@@ -80,7 +80,7 @@ def extract_ofp_msgs(output_file_name):
     all_hdrs = {}
     all_raws = {}
     all_raws_order = []
-
+    x = 0
     while True:
         get_line()
         if re.match('enum ofpraw', line):
@@ -90,6 +90,15 @@ def extract_ofp_msgs(output_file_name):
         get_line()
         first_line_number = line_number
         here = '%s:%d' % (file_name, line_number)
+       
+        if (line.startswith('#ifdef')):
+            x = 1
+        if (line.startswith('#endif')):   
+            x = 0
+            continue
+        if (x):        
+            continue
+ 
         if (line.startswith('/*')
             or line.startswith(' *')
             or not line
@@ -250,8 +259,15 @@ def extract_ofp_msgs(output_file_name):
     all_types = []
     while True:
         get_line()
-        if re.match(r'\s*/?\*', line) or line.isspace():
+        if (line.startswith('#ifdef')):
+            x = 1
+        if (line.startswith('#endif')):   
+            x = 0
             continue
+        if (x):        
+           continue
+        if re.match(r'\s*/?\*', line) or line.isspace():
+           continue
         elif re.match('}', line):
             break
 

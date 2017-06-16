@@ -73,6 +73,10 @@
 #include "util.h"
 #include "vlan-bitmap.h"
 
+#ifdef ENABLE_CN_STATS
+#include "nlclient_stats.h"
+#endif
+
 VLOG_DEFINE_THIS_MODULE(ofproto_dpif);
 
 COVERAGE_DEFINE(ofproto_dpif_expired);
@@ -253,6 +257,9 @@ init(const struct shash *iface_hints)
     ofproto_unixctl_init();
     ofproto_dpif_trace_init();
     udpif_init();
+#ifdef ENABLE_CN_STATS
+    cn_user_stats_init();
+#endif
 }
 
 static void
