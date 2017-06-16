@@ -134,7 +134,8 @@ nxst_stats_msg_init(void)
     NL_SYS_DEBUG("Entering: %s\n", __func__);
     /* Hold an example exp vendor stats message for future push to controller messages */
     if (!nxst_stats_hdr) {
-        if (!strcmp(VERSION,"2.6.0") || !strcmp(VERSION,"2.7.90")) { 
+        if (!strcmp(VERSION,"2.6.0") || !strcmp(VERSION,"2.7.0")) {
+            NL_SYS_INFO("Setting CNSG OVS Version: %s\n", VERSION);
             struct x_26_vendor_stats_msg *nxst_stats_msg;
             nxst_stats_hdr = (struct ofp_header *) malloc(sizeof(struct x_26_vendor_stats_msg));
             nxst_stats_msg = (struct x_26_vendor_stats_msg *) nxst_stats_hdr;
@@ -149,6 +150,7 @@ nxst_stats_msg_init(void)
             nxst_stats_msg->subtype = htonl(50);
         }
         else if (!strcmp(VERSION,"2.5.0")) {
+            NL_SYS_INFO("Setting CNSG OVS Version: %s\n", VERSION);
             struct x_25_nicira11_stats_msg *nxst_stats_msg;
             nxst_stats_hdr = (struct ofp_header *) malloc(sizeof(struct x_25_nicira11_stats_msg));
             nxst_stats_msg = (struct x_25_nicira11_stats_msg *) nxst_stats_hdr;
