@@ -40,7 +40,7 @@
 
 #include "openvswitch/ofp-errors.h"
 #include "openvswitch/types.h"
-#include "nlclient_stats.h"
+#include "openvswitch/cnsg_header.h"
 
 struct ovs_list;
 
