@@ -32,7 +32,7 @@
 */
 
 #include <config.h>
-#include <openflow/openflow.h> 
+#include <openflow/openflow.h>
 #include <openflow/nicira-ext.h>
 
 #ifndef NICIRA_CUST
@@ -53,7 +53,7 @@ struct netlink_stats_enable {
 OFP_ASSERT(sizeof(struct netlink_stats_enable) == 4);
 
 struct netlink_stats_disable {
-    ovs_be16 flag;     
+    ovs_be16 flag;
     uint8_t pad[2];           /* Align to 4 byte. */
 };
 OFP_ASSERT(sizeof(struct netlink_stats_disable) == 4);
@@ -141,7 +141,7 @@ struct x_26_vendor_stats_msg {
 
 /* For use in the User-space */
 /* Max size of packet_size array in user-space to send to controller */
-#define C_MAX_PKT_CNT 5000 
+#define C_MAX_PKT_CNT 5000
 #define LOG_ENABLE 0
 #define LOG_LOCATION "/home/ryu/nlclient.log"
 
@@ -251,7 +251,7 @@ struct cn_stats_htable **cn_stats_htable_reinit(struct cn_stats_htable **stats_h
 struct cn_stats_htable *cn_stats_htable_search(struct cn_stats_htable **stats_hash_table, struct k_flow_stats *flow_stats);
 struct cn_stats_htable *cn_stats_htable_free_node(struct cn_stats_htable *stats_hash_table, struct cn_flow_stats *flow_stats);
 void cn_stats_htable_init_dump(struct cn_stats_htable **hash_table);
-void cn_copy_tuple(struct k_flow_stats *k_stats, struct cn_flow_stats *cn_new_flow, 
+void cn_copy_tuple(struct k_flow_stats *k_stats, struct cn_flow_stats *cn_new_flow,
                    __be16 *packet_list_new);
 int cn_stats_htable_update(struct cn_stats_htable **stats_hash_table, struct k_flow_stats *flow_stats);
 int cn_stats_htable_insert(struct cn_stats_htable **stats_hash_table, struct k_flow_stats *flow_stats);

@@ -52,7 +52,7 @@ static const struct nla_policy stats_table_gnl_policy[STAT_TABLE_ATTR_MAX + 1] =
         [FLOW_STATS] =  {.type = NLA_NESTED},
 };
 
-/* 
+/*
  * Classifier Node Statistics Netlink enabled commands
  * - STAT_TABLE_CMD_DUMP
  *   Sends Classifier Node statistics to all connected controllers
@@ -91,7 +91,7 @@ struct genl_family stats_table_gnl_family = {
         .n_mcgrps = 1,
 };
 
-/* Update/Add 5-tuple statistics to the Kernel Statistics Table for each 
+/* Update/Add 5-tuple statistics to the Kernel Statistics Table for each
  * incoming packet */
 int per_flow_stats_update(struct sw_flow_key *key, int length)
 {
@@ -99,8 +99,8 @@ int per_flow_stats_update(struct sw_flow_key *key, int length)
                 /* Initialise the kernel statistics for the first packet */
                 stats_table_initialise(key, length);
         } else {
-                /* Check if any subsequent packets contain an entry in the 
-                 * statistics table and updates the packet size and packet 
+                /* Check if any subsequent packets contain an entry in the
+                 * statistics table and updates the packet size and packet
                  * count */
                 int found = stats_table_search(key, length);
                 if (found == 0) {
@@ -114,7 +114,7 @@ int per_flow_stats_update(struct sw_flow_key *key, int length)
         return 0;
 }
 
-/* Linear search through Statistics Table for match 
+/* Linear search through Statistics Table for match
  * Updates the packet count for the corresponding 5-tuple
  * Initiates the User-space dumping process when packet count >= PACKET_SIZE_LEN
  */
@@ -126,9 +126,9 @@ int stats_table_search(struct sw_flow_key *key, int length)
 
         if (stats_table->stats == NULL)
             return -1;
-        
+
         tmp_head = stats_table;
-        
+
         /* Loop through statistics table and check for 5-tuple match */
         while (stats_table != NULL) {
                 if (key->ipv4.addr.src == stats_table->stats->ipv4.src_ip
@@ -205,7 +205,7 @@ void cn_get_stats(struct cn_per_flow_stats *per_stats, struct sw_flow_key *key)
 
 
 /* Adds new statistics entries to the statistics table at the head */
-void stats_table_new_flow(struct sw_flow_key *key, int length) 
+void stats_table_new_flow(struct sw_flow_key *key, int length)
 {
         struct cn_per_flow_stats *new_stats;
         struct per_stats_table *new_stats_table;
@@ -213,7 +213,7 @@ void stats_table_new_flow(struct sw_flow_key *key, int length)
         /* Allocate initial memory */
         new_stats_table = kmalloc(sizeof(*new_stats_table), GFP_ATOMIC);
         if (new_stats_table == NULL)
-            return;        
+            return;
         new_stats = kzalloc(sizeof(*new_stats), GFP_ATOMIC);
         if (new_stats == NULL) {
             kfree(new_stats_table);
@@ -235,7 +235,7 @@ void stats_table_new_flow(struct sw_flow_key *key, int length)
 }
 
 /* Deletes all entries in Statistics Table */
-int stats_table_clear_all(void) 
+int stats_table_clear_all(void)
 {
         struct per_stats_table *temp;
 
@@ -270,18 +270,18 @@ int stats_table_clear_all(void)
 }
 
 /* Allocates packet-size array for new flows or updates the statistics table */
-int stats_update_packet_size(struct cn_per_flow_stats *stats, 
-                             __be16 packet_size) 
+int stats_update_packet_size(struct cn_per_flow_stats *stats,
+                             __be16 packet_size)
 {
         int index;
 
         /* Allocate memory for new packet size array */
         if (stats->pkt_size == NULL)
                 stats->pkt_size = kzalloc(sizeof(__be16)* K_MAX_PKT_CNT, GFP_ATOMIC);
-        
+
         if (stats->pkt_size != 0)
                 return -1;
-        
+
         if (stats->pkt_cnt >= K_MAX_PKT_CNT)
                 return -1;
 
@@ -343,7 +343,7 @@ int stats_table_cmd_dump(struct sk_buff *skb_2, struct genl_info *info_2)
                         return rc;
                 }
 
-                /* Copy statistics from STAT_TABLE linked list into netlink 
+                /* Copy statistics from STAT_TABLE linked list into netlink
                  * compatible format */
                 nl_stats.ipv4 = stats_table->stats->ipv4;
                 nl_stats.pkt_cnt = stats_table->stats->pkt_cnt;
@@ -372,7 +372,7 @@ int stats_table_cmd_dump(struct sk_buff *skb_2, struct genl_info *info_2)
                 genlmsg_end(skb, msg_head);
 
                 /* Multicast to listeners in the stats group */
-                genlmsg_multicast_allns(&stats_table_gnl_family, 
+                genlmsg_multicast_allns(&stats_table_gnl_family,
                                         skb,
                                         0,
                                         GROUP_ID(&stats_table_multicast_group),
@@ -458,11 +458,11 @@ int stats_table_cmd_disable(struct sk_buff *skb_2, struct genl_info *info_2)
                         nl_stats.pkt_cnt = stats_table->stats->pkt_cnt;
 
                         /* Copy packet size array */
-                        memcpy(&nl_stats.pkt_list, stats_table->stats->pkt_size, 
+                        memcpy(&nl_stats.pkt_list, stats_table->stats->pkt_size,
                                sizeof(__be16)*K_MAX_PKT_CNT);
 
                         /* Add packet size array */
-                        rc |= nla_put(skb, FLOW_STATS, sizeof(struct k_per_flow_stats), 
+                        rc |= nla_put(skb, FLOW_STATS, sizeof(struct k_per_flow_stats),
                                       &nl_stats);
                 }
                 /* Goto next table if more stats in the linked list */
@@ -482,8 +482,8 @@ int stats_table_cmd_disable(struct sk_buff *skb_2, struct genl_info *info_2)
         genlmsg_end(skb, msg_head);
 
         /* Send the Multicast */
-        rc = genlmsg_multicast_allns(&stats_table_gnl_family, skb, 0, 
-                                     GROUP_ID(&stats_table_multicast_group), 
+        rc = genlmsg_multicast_allns(&stats_table_gnl_family, skb, 0,
+                                     GROUP_ID(&stats_table_multicast_group),
                                      GFP_ATOMIC);
 
 

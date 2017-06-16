@@ -53,10 +53,10 @@ enum ofperr handle_nxst_netlink_request(struct ofconn *ofconn,
 enum ofperr handle_nxt_netlink_enable(void);
 void nxst_stats_msg_init(void);
 int old_htable_check(void);
-int send_cn_stats(struct ofconn *ofconn, struct ovs_list *replies, 
+int send_cn_stats(struct ofconn *ofconn, struct ovs_list *replies,
                     struct cn_stats_htable **old_hash_table);
 void cn_init_queue(struct ovs_list* replies);
-void cn_send_to_controller(struct ofconn* ofconn, struct stats_queue** queue_old, 
+void cn_send_to_controller(struct ofconn* ofconn, struct stats_queue** queue_old,
                         struct ovs_list* replies);
 void cn_free_queue(struct stats_queue** queue_old);
 

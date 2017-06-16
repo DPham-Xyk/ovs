@@ -42,7 +42,7 @@
 #include <linux/mutex.h>
 #include <net/genetlink.h>
 #include <linux/skbuff.h>
- 
+
 #ifndef NLCOMMON_H
 #define NLCOMMON_H
 
@@ -52,7 +52,7 @@
 #define STAT_TABLE_GROUP "STAT_TABLE"
 #define STAT_TABLE_VERSION 1
 
-/* Number of incoming packets to parse data from before transmitting to 
+/* Number of incoming packets to parse data from before transmitting to
  * user-space */
 #ifndef K_MAX_PKT_CNT
 #define K_MAX_PKT_CNT 100

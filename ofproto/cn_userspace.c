@@ -40,23 +40,23 @@
 #include "nlclient_stats.h"
 
 /* If a Statistics Disable message is received from controller, dump current
- * table to the controller, disable user-space statistics gathering 
+ * table to the controller, disable user-space statistics gathering
  * functionality, and send a kernel statistics disable message */
 enum ofperr
-handle_nxt_netlink_disable(void) 
+handle_nxt_netlink_disable(void)
 {
     NL_SYS_DEBUG("Entering: %s\n", __func__);
     NL_SYS_INFO("Got disable message");
-    
+
     /* Check if cn stats is already disabled */
     if (cn_k_ready == 0 || nl_c_enable == 0)
         return 0;
-    
+
     cn_k_ready = 0;
     nl_c_enable = 0;
-    
+
     cn_stats_htable_init_dump(g_hash_table);
-    
+
     NL_SYS_INFO("Turning off timers and reinit table");
     /* Clean Timers */
     timer_delete(t_kernel);
@@ -67,37 +67,37 @@ handle_nxt_netlink_disable(void)
     return 0;
 }
 
-/* If a Statistics Enable message is received from the controller, enable 
+/* If a Statistics Enable message is received from the controller, enable
  * user-space statistics gathering functionality and send a kernel statistics
  * capture message to the kernel */
 enum ofperr
-handle_nxt_netlink_enable(void) 
+handle_nxt_netlink_enable(void)
 {
-    NL_SYS_DEBUG("Entering: %s\n", __func__);    
+    NL_SYS_DEBUG("Entering: %s\n", __func__);
     NL_SYS_INFO("Got enable message");
 
     /* Check if cn stats is already disabled */
     if (cn_k_ready == 1 && nl_c_enable == 1)
         return 0;
-    
+
     cn_k_nl_enable_request();
-    
+
     /* Initiate Stats Hash Table */
     if (g_hash_table)
         cn_stats_htable_init_dump(g_hash_table);
     else
         g_hash_table = cn_stats_htable_init();
-    
+
     /* Clean Timers */
     cn_k_timer_init();
     cn_c_timer_init();
-    
+
     cn_k_ready = 1;
     nl_c_enable = 1;
     return 0;
 }
 
-/* If a Statistics Request message is received from the controller, send 
+/* If a Statistics Request message is received from the controller, send
  * current statistics to the controller */
 enum ofperr
 handle_nxst_netlink_request(struct ofconn *ofconn,
@@ -112,24 +112,24 @@ handle_nxst_netlink_request(struct ofconn *ofconn,
                                             request->type,
                                             ntohs(request->length),
                                             request->xid);
-    
+
     /* Reply to the Stats request message from the controller */
     ofpmp_init(&replies, request);
     old_hash_table = cn_stats_htable_reinit(g_hash_table);
 
     nxst_stats_hdr->xid = 0; // Future messages don't require a transaction ID
     error = send_cn_stats(ofconn, &replies, old_hash_table);
-    
+
     cn_stats_htable_delete_all(old_hash_table);
-    
+
     return error;
 }
 
 //#define OVS_VER_BRANCH(code1, code2)
 //if (strcmp(VERSION, <2.5)) {print error} else if strcmp(VERSION=2.5) {code1} else {code2}
 /* Initialise the header for the openflow experimenter message for OVS 2.5.0 */
-void 
-nxst_stats_msg_init(void) 
+void
+nxst_stats_msg_init(void)
 {
     NL_SYS_DEBUG("Entering: %s\n", __func__);
     /* Hold an example exp vendor stats message for future push to controller messages */
@@ -172,15 +172,15 @@ nxst_stats_msg_init(void)
     }
 }
 
-/* Searches through old hash table for netlink stats, adds them to the reply and 
+/* Searches through old hash table for netlink stats, adds them to the reply and
  * sends the final message to the controller */
-int send_cn_stats(struct ofconn *ofconn, struct ovs_list *replies, 
+int send_cn_stats(struct ofconn *ofconn, struct ovs_list *replies,
                         struct cn_stats_htable **old_hash_table) {
     NL_SYS_DEBUG("Entering: %s\n", __func__);
     struct cn_stats_htable *stats_hash_table_cur = {0};
     struct cn_stats_htable *stats_hash_table_temp = {0};
     enum ofperr error = 0;
-    
+
     if (old_hash_table == NULL)
         goto done;
 
@@ -230,7 +230,7 @@ done:
 }
 
 /* Initialises statistics hash table queue on startup */
-void 
+void
 cn_init_queue(struct ovs_list* replies)
 {
     if (nl_c_enable == 1 && cn_initialised == 1) {
@@ -240,8 +240,8 @@ cn_init_queue(struct ovs_list* replies)
 }
 
 /* Send each hash table in the queue to connected controllers */
-void 
-cn_send_to_controller(struct ofconn* ofconn, struct stats_queue** queue_old, 
+void
+cn_send_to_controller(struct ofconn* ofconn, struct stats_queue** queue_old,
                       struct ovs_list* replies)
 {
     if (nl_c_enable == 1 && cn_initialised == 1) {
@@ -256,12 +256,12 @@ cn_send_to_controller(struct ofconn* ofconn, struct stats_queue** queue_old,
 }
 
 /* Obtain memory from queues */
-void 
+void
 cn_free_queue(struct stats_queue** queue_old)
 {
     if (nl_c_enable == 1 && cn_initialised == 1) {
         while(!SIMPLEQ_EMPTY(&cn_stats_queue_head)) {
-            (*queue_old) = SIMPLEQ_FIRST(&cn_stats_queue_head); 
+            (*queue_old) = SIMPLEQ_FIRST(&cn_stats_queue_head);
             /* Delete old statistics hash table */
             SIMPLEQ_REMOVE(&cn_stats_queue_head, (*queue_old), stats_queue, next);
             cn_stats_htable_delete_all((*queue_old)->old_htable_stats);

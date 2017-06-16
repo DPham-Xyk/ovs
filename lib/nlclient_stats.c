@@ -112,13 +112,13 @@ cn_user_stats_init(void)
         NL_SYS_ERR("Error: NL Statistics Receiver could not be started\n");
     else
         NL_SYS_INFO("Initialising NL Statistics Receiver thread\n");
-    
+
     cn_initialised = 1;
 }
 
-/* Initialise Kernel Statistics Timer to collect statistics from kernel if 
+/* Initialise Kernel Statistics Timer to collect statistics from kernel if
  * user-space has not received statistics in a while */
-int 
+int
 cn_k_timer_init(void)
 {
     int error;
@@ -134,7 +134,7 @@ cn_k_timer_init(void)
 }
 
 /* Initialises the Controller Statistics Timer to attempt to send statistics to
- * connected controller */ 
+ * connected controller */
 int
 cn_c_timer_init(void)
 {
@@ -151,7 +151,7 @@ cn_c_timer_init(void)
     return error;
 }
 
-/* Socket using the netlink protocol which listens for STAT_TABLE Multicast 
+/* Socket using the netlink protocol which listens for STAT_TABLE Multicast
  * packets from the kernel
  * https://stackoverflow.com/questions/26265453/netlink-multicast-kernel-group
  * https://people.redhat.com/nhorman/papers/netlink.pdf
@@ -255,7 +255,7 @@ int
 cn_k_nl_stats_handler(struct nl_msg *msg, void * arg)
 {
     NL_SYS_DEBUG("Entering: %s\n", __func__);
-    
+
     (void) arg;
     struct nlmsghdr * hdr = nlmsg_hdr(msg);
     struct genlmsghdr * gnlh = nlmsg_data(hdr);
@@ -346,7 +346,7 @@ cn_k_nl_disable_request(void)
                 0,                      /* flags */
                 STAT_TABLE_CMD_DISABLE, /* numeric command identifier */
                 STAT_TABLE_VERSION);    /* interface version */
-    
+
     /* Send disable message to the kernel */
     nl_send_auto(sk, msg);
 
@@ -387,11 +387,11 @@ cn_k_nl_enable_request(void)
 }
 
 /* Starts the statistics hash table dumping thread */
-void 
+void
 cn_stats_htable_init_dump(struct cn_stats_htable **stats_hash_table) {
     NL_SYS_DEBUG("Entering: %s\n", __func__);
     struct stats_queue *new_table;
-    
+
     new_table = malloc(sizeof(*new_table));
     if (new_table == NULL)
         return;
@@ -405,7 +405,7 @@ cn_stats_htable_init_dump(struct cn_stats_htable **stats_hash_table) {
 }
 
 /* Create a statistics hash table */
-struct 
+struct
 cn_stats_htable **cn_stats_htable_init(void) {
     NL_SYS_DEBUG("Entering: %s\n", __func__);
     struct cn_stats_htable **new_hash_table;
@@ -419,7 +419,7 @@ cn_stats_htable **cn_stats_htable_init(void) {
 }
 
 /* Reinitialise a new statistics hash table, enabling the old one to be acted upon */
-struct 
+struct
 cn_stats_htable **cn_stats_htable_reinit(struct cn_stats_htable **old_hash_table) {
     NL_SYS_DEBUG("Entering: %s\n", __func__);
 
@@ -435,8 +435,8 @@ cn_stats_htable **cn_stats_htable_reinit(struct cn_stats_htable **old_hash_table
  * If there is a match return the hash node containing those statistics
  * else return a NULL
  */
-struct 
-cn_stats_htable *cn_stats_htable_search(struct cn_stats_htable **stats_hash_table, 
+struct
+cn_stats_htable *cn_stats_htable_search(struct cn_stats_htable **stats_hash_table,
                                         struct k_flow_stats *flow_stats) {
     NL_SYS_DEBUG("Entering: %s\n", __func__);
     struct cn_stats_htable *cn_cur;
@@ -489,7 +489,7 @@ void
     struct itimerspec its;
     struct sigevent sev;
     (void) args;
-    
+
     memset(&its, 0, sizeof (struct itimerspec));
     memset(&sev, 0, sizeof (struct sigevent));
 
@@ -514,7 +514,7 @@ void
     struct itimerspec its;
     struct sigevent sev;
     (void) args;
-    
+
     memset(&its, 0, sizeof (struct itimerspec));
     memset(&sev, 0, sizeof (struct sigevent));
 
@@ -561,9 +561,9 @@ cn_reset_timer(timer_t r_timer_id, int interval)
 }
 
 /* Updates/Inserts statistics into the hash table */
-int 
-cn_stats_htable_update(struct cn_stats_htable **stats_hash_table, 
-                       struct k_flow_stats *flow_stats) 
+int
+cn_stats_htable_update(struct cn_stats_htable **stats_hash_table,
+                       struct k_flow_stats *flow_stats)
 {
     NL_SYS_DEBUG("Entering: %s\n", __func__);
     struct cn_stats_htable *cn_cur;
@@ -611,8 +611,8 @@ cn_stats_htable_update(struct cn_stats_htable **stats_hash_table,
 }
 
 /* Copy Kernel 5-tuple data and packet sizes to user-space flow */
-void 
-cn_copy_tuple(struct k_flow_stats* k_stats, struct cn_flow_stats* cn_new_flow, 
+void
+cn_copy_tuple(struct k_flow_stats* k_stats, struct cn_flow_stats* cn_new_flow,
               __be16* packet_list_new)
 {
     cn_new_flow->pkt_cnt = k_stats->pkt_cnt;
@@ -625,11 +625,11 @@ cn_copy_tuple(struct k_flow_stats* k_stats, struct cn_flow_stats* cn_new_flow,
 }
 
 /* Adds the 5-tuple statistics to the hash table using the hashing function, if
- * a statistics already exists, add linked the statistics by linked list for 
+ * a statistics already exists, add linked the statistics by linked list for
  * the new flow rules */
-int 
-cn_stats_htable_insert(struct cn_stats_htable **stats_hash_table, 
-                       struct k_flow_stats *k_stats) 
+int
+cn_stats_htable_insert(struct cn_stats_htable **stats_hash_table,
+                       struct k_flow_stats *k_stats)
 {
     NL_SYS_DEBUG("Entering: %s\n", __func__);
     int key;
@@ -691,13 +691,13 @@ cn_stats_htable_insert(struct cn_stats_htable **stats_hash_table,
                 cn_new = malloc(sizeof (*cn_new));
                 if (cn_new == NULL)
                     return -1;
-                
+
                 cn_new_flow = malloc(sizeof (*cn_new_flow));
                 if (cn_new_flow == NULL) {
                     free(cn_new);
                     return -1;
                 }
-                
+
                 packet_list_new = (__be16 *) calloc(C_MAX_PKT_CNT, sizeof (__be16));
                 if (packet_list_new == NULL) {
                     free(cn_new);
@@ -726,10 +726,10 @@ cn_stats_htable_insert(struct cn_stats_htable **stats_hash_table,
 }
 
 /* Delete the current statistics hash_table in use */
-void 
+void
 cn_stats_htable_delete_global(void) {
     NL_SYS_DEBUG("Entering: %s\n", __func__);
-    
+
     if (g_hash_table != NULL) {
         pthread_mutex_lock(&lock_stats_table);
         cn_stats_htable_delete_all(g_hash_table);
@@ -738,7 +738,7 @@ cn_stats_htable_delete_global(void) {
 }
 
 /* Deletes all the statistics and nodes in the hash table */
-int 
+int
 cn_stats_htable_delete_all(struct cn_stats_htable **stats_hash_table) {
     NL_SYS_DEBUG("Entering: %s\n", __func__);
     struct cn_stats_htable *cn_cur;
@@ -781,8 +781,8 @@ cn_stats_htable_delete_all(struct cn_stats_htable **stats_hash_table) {
 }
 
 /* Checks if two 5-tuple flows are the same */
-int cn_flow_stats_compare(struct cn_flow_stats *user_stats, 
-                          struct k_flow_stats *kernel_stats) 
+int cn_flow_stats_compare(struct cn_flow_stats *user_stats,
+                          struct k_flow_stats *kernel_stats)
 {
     NL_SYS_DEBUG("Entering: %s\n", __func__);
 
@@ -821,7 +821,7 @@ cn_get_hash_key(struct k_flow_stats *flow_stats)
 }
 
 /* Prints and logs the 5-tuple flow stats */
-void 
+void
 cb_print_flow(struct cn_flow_stats *flow_stats) {
     NL_SYS_DEBUG("Entering: %s\n", __func__);
     char s_srcip[INET_ADDRSTRLEN];
