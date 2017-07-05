@@ -39,6 +39,10 @@
 #include "ofproto/cn_userspace.h"
 #include "nlclient_stats.h"
 
+int nl_c_enable;
+pthread_mutex_t lock_c_enable = PTHREAD_MUTEX_INITIALIZER;
+struct ofp_header *nxst_stats_hdr;
+
 /* If a Statistics Disable message is received from controller, dump current
  * table to the controller, disable user-space statistics gathering
  * functionality, and send a kernel statistics disable message */
@@ -49,12 +53,23 @@ handle_nxt_netlink_disable(void)
     NL_SYS_INFO("Got disable message");
 
     /* Check if cn stats is already disabled */
+    pthread_mutex_lock(&lock_k_ready);
+    pthread_mutex_lock(&lock_c_enable);
     if (cn_k_ready == 0 || nl_c_enable == 0)
+        pthread_mutex_unlock(&lock_k_ready);
+        pthread_mutex_unlock(&lock_c_enable);
         return 0;
+    pthread_mutex_unlock(&lock_k_ready);
+    pthread_mutex_unlock(&lock_c_enable);
 
+    pthread_mutex_lock(&lock_k_ready);
     cn_k_ready = 0;
+    pthread_mutex_unlock(&lock_k_ready);
+    
+    pthread_mutex_lock(&lock_c_enable);
     nl_c_enable = 0;
-
+    pthread_mutex_unlock(&lock_c_enable);
+    
     cn_stats_htable_init_dump(g_hash_table);
 
     NL_SYS_INFO("Turning off timers and reinit table");
@@ -77,8 +92,14 @@ handle_nxt_netlink_enable(void)
     NL_SYS_INFO("Got enable message");
 
     /* Check if cn stats is already disabled */
+    pthread_mutex_lock(&lock_k_ready);
+    pthread_mutex_lock(&lock_c_enable);
     if (cn_k_ready == 1 && nl_c_enable == 1)
+        pthread_mutex_unlock(&lock_k_ready);
+        pthread_mutex_unlock(&lock_c_enable);
         return 0;
+    pthread_mutex_unlock(&lock_k_ready);
+    pthread_mutex_unlock(&lock_c_enable);
 
     cn_k_nl_enable_request();
 
@@ -91,9 +112,14 @@ handle_nxt_netlink_enable(void)
     /* Clean Timers */
     cn_k_timer_init();
     cn_c_timer_init();
-
+    
+    pthread_mutex_lock(&lock_k_ready);
     cn_k_ready = 1;
+    pthread_mutex_unlock(&lock_k_ready);
+    
+    pthread_mutex_lock(&lock_c_enable);
     nl_c_enable = 1;
+    pthread_mutex_unlock(&lock_c_enable);
     return 0;
 }
 
@@ -168,7 +194,9 @@ nxst_stats_msg_init(void)
             NL_SYS_ERR("CN Statistics Gatherer - Unsupported Version %s", VERSION);
             return;
         }
+        pthread_mutex_lock(&lock_c_enable);
         nl_c_enable = 1;
+        pthread_mutex_unlock(&lock_c_enable);
     }
 }
 
@@ -233,9 +261,13 @@ done:
 void
 cn_init_queue(struct ovs_list* replies)
 {
+    pthread_mutex_lock(&lock_c_enable);
     if (nl_c_enable == 1 && cn_initialised == 1) {
+        pthread_mutex_unlock(&lock_c_enable);
         if(!SIMPLEQ_EMPTY(&cn_stats_queue_head))
             memset(&(*replies), 0, sizeof((*replies)));
+    } else {
+        pthread_mutex_unlock(&lock_c_enable);
     }
 }
 
@@ -244,7 +276,9 @@ void
 cn_send_to_controller(struct ofconn* ofconn, struct stats_queue** queue_old,
                       struct ovs_list* replies)
 {
+    pthread_mutex_lock(&lock_c_enable);
     if (nl_c_enable == 1 && cn_initialised == 1) {
+        pthread_mutex_unlock(&lock_c_enable);
         if(!SIMPLEQ_EMPTY(&cn_stats_queue_head)){
             (*queue_old) = SIMPLEQ_FIRST(&cn_stats_queue_head);
             SIMPLEQ_FOREACH((*queue_old), &cn_stats_queue_head, next) {
@@ -252,6 +286,8 @@ cn_send_to_controller(struct ofconn* ofconn, struct stats_queue** queue_old,
                 send_cn_stats(ofconn, &(*replies), (*queue_old)->old_htable_stats);
             }
         }
+    } else {
+        pthread_mutex_unlock(&lock_c_enable);
     }
 }
 
@@ -259,7 +295,9 @@ cn_send_to_controller(struct ofconn* ofconn, struct stats_queue** queue_old,
 void
 cn_free_queue(struct stats_queue** queue_old)
 {
+    pthread_mutex_lock(&lock_c_enable);
     if (nl_c_enable == 1 && cn_initialised == 1) {
+        pthread_mutex_unlock(&lock_c_enable);
         while(!SIMPLEQ_EMPTY(&cn_stats_queue_head)) {
             (*queue_old) = SIMPLEQ_FIRST(&cn_stats_queue_head);
             /* Delete old statistics hash table */
@@ -267,6 +305,8 @@ cn_free_queue(struct stats_queue** queue_old)
             cn_stats_htable_delete_all((*queue_old)->old_htable_stats);
             free((*queue_old));
         }
+    } else {
+        pthread_mutex_unlock(&lock_c_enable);
     }
 }
 #endif /* ENABLE_CN_STATS */

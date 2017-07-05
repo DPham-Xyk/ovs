@@ -105,7 +105,7 @@ enum cn_stats_handles {
 #endif
 
 static DEFINE_MUTEX(cn_mutex);
-extern struct per_stats_table *stats_table;
+extern struct per_stats_table *g_stats_table;
 extern int cn_k_stats_enabled;
 extern struct genl_family stats_table_gnl_family;
 

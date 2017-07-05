@@ -32,6 +32,7 @@
 */
 
 #ifdef K_ENABLE_CN_STATS
+#define DEBUG_CNSG 1
 #include <linux/kernel.h>
 #include <linux/openvswitch.h>
 #include <linux/genetlink.h>
@@ -42,7 +43,7 @@
 int incoming_packet_count;
 int cn_k_stats_enabled;
 
-struct per_stats_table *stats_table;
+struct per_stats_table *g_stats_table;
 
 struct genl_multicast_group stats_table_multicast_group = {
         .name = STAT_TABLE_GROUP,
@@ -51,6 +52,16 @@ struct genl_multicast_group stats_table_multicast_group = {
 static const struct nla_policy stats_table_gnl_policy[STAT_TABLE_ATTR_MAX + 1] = {
         [FLOW_STATS] =  {.type = NLA_NESTED},
 };
+
+void tbl_lock(void)
+{
+	mutex_lock(&cn_mutex);
+}
+
+void tbl_unlock(void)
+{
+	mutex_unlock(&cn_mutex);
+}
 
 /*
  * Classifier Node Statistics Netlink enabled commands
@@ -95,7 +106,7 @@ struct genl_family stats_table_gnl_family = {
  * incoming packet */
 int per_flow_stats_update(struct sw_flow_key *key, int length)
 {
-        if (unlikely(stats_table == NULL)) {
+        if (unlikely(g_stats_table == NULL)) {
                 /* Initialise the kernel statistics for the first packet */
                 stats_table_initialise(key, length);
         } else {
@@ -114,9 +125,9 @@ int per_flow_stats_update(struct sw_flow_key *key, int length)
         return 0;
 }
 
-/* Linear search through Statistics Table for match
- * Updates the packet count for the corresponding 5-tuple
- * Initiates the User-space dumping process when packet count >= PACKET_SIZE_LEN
+/* - Linear search through Statistics Table for match
+ * - Updates the packet count for the corresponding 5-tuple
+ * - Initiates the User-space dumping process when packet count >= PACKET_SIZE_LEN
  */
 int stats_table_search(struct sw_flow_key *key, int length)
 {
@@ -124,62 +135,64 @@ int stats_table_search(struct sw_flow_key *key, int length)
         struct sk_buff *skb_2 = {0};
         struct genl_info *info = {0};
 
-        if (stats_table->stats == NULL)
+        if (g_stats_table->stats == NULL)
             return -1;
 
-        tmp_head = stats_table;
+        tmp_head = g_stats_table;
 
         /* Loop through statistics table and check for 5-tuple match */
-        while (stats_table != NULL) {
-                if (key->ipv4.addr.src == stats_table->stats->ipv4.src_ip
-                    && key->ipv4.addr.dst == stats_table->stats->ipv4.dst_ip
-                    && ntohs(key->tp.src) == stats_table->stats->ipv4.src_port
-                    && ntohs(key->tp.dst) == stats_table->stats->ipv4.dst_port
-                    && key->ip.proto == stats_table->stats->ipv4.proto) {
+        while (g_stats_table != NULL) {
+                if (key->ipv4.addr.src == g_stats_table->stats->ipv4.src_ip
+                    && key->ipv4.addr.dst == g_stats_table->stats->ipv4.dst_ip
+                    && ntohs(key->tp.src) == g_stats_table->stats->ipv4.src_port
+                    && ntohs(key->tp.dst) == g_stats_table->stats->ipv4.dst_port
+                    && key->ip.proto == g_stats_table->stats->ipv4.proto) {
 
-                        stats_table->stats->pkt_cnt++;
+                        g_stats_table->stats->pkt_cnt++;
                         incoming_packet_count++;
-                        stats_update_packet_size(stats_table->stats, length);
+                        stats_update_packet_size(g_stats_table->stats, length);
 
                         /* Send statistics table to user-space when full */
-                        if (stats_table->stats->pkt_cnt > K_MAX_PKT_CNT
+                        if (g_stats_table->stats->pkt_cnt > K_MAX_PKT_CNT
                             || incoming_packet_count >= K_MAX_PKT_CNT) {
-                                stats_table = tmp_head;
+                                g_stats_table = tmp_head;
                                 stats_table_cmd_dump(skb_2, info);
                                 incoming_packet_count = 0;
                                 return 0;
                         } else {
-                                stats_table = tmp_head;
+                                g_stats_table = tmp_head;
                                 return 0;
                         }
                 } else {
                         /* Keep looping through statistics table linked list
                          * until it is empty */
-                        if (stats_table->next != NULL) {
-                                stats_table = stats_table->next;
+                        if (g_stats_table->next != NULL) {
+                                g_stats_table = g_stats_table->next;
                         } else {
                                 /* No Match */
-                                stats_table = tmp_head;
+                                g_stats_table = tmp_head;
                                 return -1;
                         }
                 }
         }
-        stats_table = tmp_head;
+        g_stats_table = tmp_head;
         return 0;
 }
 
-/* Initialises first node in linked list and copies the 5-tuple from key */
+/* Initialises the first node in the linked list and copies the 5-tuple 
+ * from key 
+ */
 void stats_table_initialise(struct sw_flow_key *key, int length)
 {
         struct cn_per_flow_stats *new_stats;
 
         /* Allocate initial memory */
-        stats_table = kmalloc(sizeof(*stats_table), GFP_ATOMIC);
-        if (stats_table == NULL)
+        g_stats_table = kmalloc(sizeof(*g_stats_table), GFP_ATOMIC);
+        if (g_stats_table == NULL)
             return;
         new_stats = kzalloc(sizeof(*new_stats), GFP_ATOMIC);
         if (new_stats == NULL) {
-            kfree(stats_table);
+            kfree(g_stats_table);
             return;
         }
         /* Add 5-tuple information, packet count and packet sizes */
@@ -228,10 +241,10 @@ void stats_table_new_flow(struct sw_flow_key *key, int length)
 
         /* Link new statistics flow to linked list */
         new_stats_table->stats = new_stats;
-        if (stats_table !=  NULL)
-                new_stats_table->next = stats_table;
+        if (g_stats_table !=  NULL)
+                new_stats_table->next = g_stats_table;
 
-        stats_table = new_stats_table;
+        g_stats_table = new_stats_table;
 }
 
 /* Deletes all entries in Statistics Table */
@@ -240,32 +253,32 @@ int stats_table_clear_all(void)
         struct per_stats_table *temp;
 
         /* Check if table exists */
-        if (stats_table == NULL)
+        if (g_stats_table == NULL)
                 return -1;
 
         /* Go through linked list and free everything until final table */
-        while (stats_table->next != NULL) {
-                temp = stats_table->next;
-                if (stats_table != NULL){
-                        if (stats_table->stats != NULL) {
-                                if (stats_table->stats->pkt_size != NULL)
-                                        kfree(stats_table->stats->pkt_size);
-                        kfree(stats_table->stats);
+        while (g_stats_table->next != NULL) {
+                temp = g_stats_table->next;
+                if (g_stats_table != NULL){
+                        if (g_stats_table->stats != NULL) {
+                                if (g_stats_table->stats->pkt_size != NULL)
+                                        kfree(g_stats_table->stats->pkt_size);
+                        kfree(g_stats_table->stats);
                         }
                 }
-                kfree(stats_table);
-                stats_table = temp;
+                kfree(g_stats_table);
+                g_stats_table = temp;
         }
 
         /* Check for entry in the final table and free if it exists */
-        if (stats_table->stats != NULL) {
-                if (stats_table->stats->pkt_size != NULL)
-                        kfree(stats_table->stats->pkt_size);
-                kfree(stats_table->stats);
+        if (g_stats_table->stats != NULL) {
+                if (g_stats_table->stats->pkt_size != NULL)
+                        kfree(g_stats_table->stats->pkt_size);
+                kfree(g_stats_table->stats);
         }
-        if (stats_table != NULL)
-                kfree(stats_table);
-        stats_table = NULL;
+        if (g_stats_table != NULL)
+                kfree(g_stats_table);
+        g_stats_table = NULL;
         return 0;
 }
 
@@ -306,13 +319,13 @@ unsigned int packet_length(const struct sk_buff *skb)
 /* Frees the last entry in the statistics table */
 void free_stats_table(void)
 {
-        if (stats_table != NULL) {
-                if (stats_table->stats != NULL) {
-                        if (stats_table->stats->pkt_size != NULL)
-                                kfree(stats_table->stats->pkt_size);
-                        kfree(stats_table->stats);
+        if (g_stats_table != NULL) {
+                if (g_stats_table->stats != NULL) {
+                        if (g_stats_table->stats->pkt_size != NULL)
+                                kfree(g_stats_table->stats->pkt_size);
+                        kfree(g_stats_table->stats);
                 }
-                kfree(stats_table);
+                kfree(g_stats_table);
         }
 }
 
@@ -325,13 +338,13 @@ int stats_table_cmd_dump(struct sk_buff *skb_2, struct genl_info *info_2)
         void *msg_head;
         int rc = 0;
 
-        temp = stats_table;
+        temp = g_stats_table;
 
         do {
-                if (stats_table == NULL )
+                if (g_stats_table == NULL )
                         return 0;
 
-                if (stats_table->stats == NULL)
+                if (g_stats_table->stats == NULL)
                         return 0;
 
                 /* Allocate memory for new Generic Netlink Message*/
@@ -345,9 +358,9 @@ int stats_table_cmd_dump(struct sk_buff *skb_2, struct genl_info *info_2)
 
                 /* Copy statistics from STAT_TABLE linked list into netlink
                  * compatible format */
-                nl_stats.ipv4 = stats_table->stats->ipv4;
-                nl_stats.pkt_cnt = stats_table->stats->pkt_cnt;
-                memcpy(&nl_stats.pkt_list, stats_table->stats->pkt_size,
+                nl_stats.ipv4 = g_stats_table->stats->ipv4;
+                nl_stats.pkt_cnt = g_stats_table->stats->pkt_cnt;
+                memcpy(&nl_stats.pkt_list, g_stats_table->stats->pkt_size,
                        sizeof(__be16)*K_MAX_PKT_CNT);
 
                 /* Attach genl header */
@@ -378,19 +391,19 @@ int stats_table_cmd_dump(struct sk_buff *skb_2, struct genl_info *info_2)
                                         GROUP_ID(&stats_table_multicast_group),
                                         GFP_ATOMIC);
 
-                if (stats_table->next != NULL) {
-                        temp = stats_table->next;
+                if (g_stats_table->next != NULL) {
+                        temp = g_stats_table->next;
                         free_stats_table();
-                        stats_table = temp;
+                        g_stats_table = temp;
                         rc = 0;
                         temp = NULL;
                 } else {
                         free_stats_table();
-                        stats_table = NULL;
+                        g_stats_table = NULL;
                         return rc;
                 }
 
-        } while(stats_table);
+        } while(g_stats_table);
 
         goto end;
 
@@ -398,12 +411,11 @@ error:
         pr_info("Could not send multi-cast genlmsg to user-space");
         kfree_skb(skb);
 end:
-        stats_table = temp;
+        g_stats_table = temp;
         return rc;
 }
 
-/* Disables capturing statistics of incoming packets and sends current
- * Statistics Table to user-space */
+/* Enables capturing statistics of incoming packets */
 int stats_table_cmd_enable(struct sk_buff *skb, struct genl_info *info)
 {
         /* Start processing incoming packets for stats */
@@ -416,6 +428,8 @@ int stats_table_cmd_enable(struct sk_buff *skb, struct genl_info *info)
         return 0;
 }
 
+/* Disables capturing statistics of incoming packets and sends current
+ * Statistics Table to user-space */
 int stats_table_cmd_disable(struct sk_buff *skb_2, struct genl_info *info_2)
 {
         struct k_per_flow_stats nl_stats;
@@ -449,27 +463,29 @@ int stats_table_cmd_disable(struct sk_buff *skb_2, struct genl_info *info_2)
                 goto out;
         }
 
-        tmp = stats_table;
+        tmp = g_stats_table;
 
-        while (stats_table != NULL) {
-                if (stats_table->stats != NULL) {
+        while (g_stats_table != NULL) {
+                if (g_stats_table->stats != NULL) {
                         /* Add 5-tuple and packet_count data */
-                        nl_stats.ipv4 = stats_table->stats->ipv4;
-                        nl_stats.pkt_cnt = stats_table->stats->pkt_cnt;
+                        nl_stats.ipv4 = g_stats_table->stats->ipv4;
+                        nl_stats.pkt_cnt = g_stats_table->stats->pkt_cnt;
 
                         /* Copy packet size array */
-                        memcpy(&nl_stats.pkt_list, stats_table->stats->pkt_size,
+                        memcpy(&nl_stats.pkt_list, g_stats_table->stats->pkt_size,
                                sizeof(__be16)*K_MAX_PKT_CNT);
-
+#ifdef DEBUG_CNSG
+                        printk("Pkt Cnt %i\n", nl_stats.pkt_cnt);
+#endif
                         /* Add packet size array */
                         rc |= nla_put(skb, FLOW_STATS, sizeof(struct k_per_flow_stats),
                                       &nl_stats);
                 }
                 /* Goto next table if more stats in the linked list */
-                if (stats_table->next != NULL)
-                        stats_table = stats_table->next;
+                if (g_stats_table->next != NULL)
+                        g_stats_table = g_stats_table->next;
                 else {
-                        stats_table = tmp;
+                        g_stats_table = tmp;
                         break;
                 }
         }
@@ -489,7 +505,7 @@ int stats_table_cmd_disable(struct sk_buff *skb_2, struct genl_info *info_2)
 
         /* Delete table */
         /* Return stats header again in case of empty table */
-        stats_table = tmp;
+        g_stats_table = tmp;
 
         /* Delete stats */
         err = stats_table_clear_all();

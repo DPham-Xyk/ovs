@@ -147,11 +147,20 @@ enum cn_stats_handles {
 };
 #endif /* NLCOMMON_H */
 
+/* Dummy structs */
 struct nl_sock;
 struct nl_msg;
 struct ovs_list;
+
 int cn_k_ready;
 int cn_initialised;
+struct cn_stats_htable **g_hash_table;
+
+timer_t t_kernel;
+timer_t t_controller;
+
+extern pthread_mutex_t lock_old_stats_table;
+extern pthread_mutex_t lock_k_ready;
 
 /* Classifier Node Main Function */
 void cn_user_stats_init(void);

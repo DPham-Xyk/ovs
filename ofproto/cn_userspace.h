@@ -36,17 +36,6 @@
 #define CN_USERSPACE_H
 #include "nlclient_stats.h"
 
-extern timer_t t_controller;
-extern timer_t t_kernel;
-extern timer_t t_controller;
-extern pthread_mutex_t lock_old_stats_table;
-extern int cn_k_ready;
-int nl_c_enable;
-
-extern struct cn_stats_htable **g_hash_table;
-
-struct ofp_header *nxst_stats_hdr;
-
 enum ofperr handle_nxt_netlink_disable(void);
 enum ofperr handle_nxst_netlink_request(struct ofconn *ofconn,
                                 const struct ofp_header *request);

@@ -65,19 +65,22 @@ int family_id;
 int group_id;
 int cn_k_ready;
 int cn_initialised;
-timer_t t_kernel;
-timer_t t_controller;
+
 pthread_t nlclient_rid;
 pthread_t nlclient_sid;
 pthread_t nlclient_ctimer;
 pthread_t nlclient_ktimer;
 pthread_t nlclient_cli_id;
+
 pthread_mutex_t lock_clock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t lock_stats_table = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t lock_old_stats_table = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+
+pthread_mutex_t lock_old_stats_table = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lock_k_ready = PTHREAD_MUTEX_INITIALIZER;
+
 pthread_cond_t cond_clock = PTHREAD_COND_INITIALIZER;
-struct cn_stats_htable **g_hash_table;
+
 struct nl_sock *sk;
 
 /* CN User-space statistics gathering initialiser */
@@ -86,9 +89,11 @@ cn_user_stats_init(void)
 {
     NL_SYS_DEBUG("Entering: %s\n", __func__);
     int error = 0;
-
+    
+    pthread_mutex_lock(&lock_k_ready);
     cn_k_ready = 0;
-
+    pthread_mutex_unlock(&lock_k_ready);
+            
     SIMPLEQ_INIT(&cn_stats_queue_head);
 
     /* Initiate Statistics Hash Table */
@@ -551,12 +556,14 @@ cn_reset_timer(timer_t r_timer_id, int interval)
     its.it_value.tv_nsec = 0;
     its.it_interval.tv_sec = its.it_value.tv_sec;
     its.it_interval.tv_nsec = its.it_value.tv_nsec;
-
+    
+    pthread_mutex_lock(&lock_k_ready);
     if (cn_k_ready == 1) {
         if (r_timer_id != NULL) {
             timer_settime(r_timer_id, 0, &its, NULL);
         }
     }
+    pthread_mutex_unlock(&lock_k_ready);
     return;
 }
 
@@ -862,9 +869,11 @@ void
 cn_stats_uninit(struct nl_sock * sk)
 {
     NL_SYS_DEBUG("Entering: %s\n", __func__);
-
+    
+    pthread_mutex_lock(&lock_k_ready);
     cn_k_ready = 0;
-
+    pthread_mutex_unlock(&lock_k_ready);
+    
     pthread_join(nlclient_rid, NULL);
     pthread_join(nlclient_ctimer, NULL);
     pthread_join(nlclient_ktimer, NULL);
