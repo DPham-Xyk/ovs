@@ -3387,6 +3387,16 @@ ofp_to_string__(const struct ofp_header *oh, enum ofpraw raw,
 
     enum ofptype type = ofptype_from_ofpraw(raw);
     switch (type) {
+#ifdef ENABLE_CN_STATS
+    case OFPTYPE_NETLINK_REQUEST:
+        break;
+    case OFPTYPE_NETLINK_DISABLE:
+        break;
+    case OFPTYPE_NETLINK_ENABLE:
+        break;
+    case OFPTYPE_NETLINK_REPLY:
+        break;
+#endif
     case OFPTYPE_GROUP_STATS_REQUEST:
         ofp_print_stats(string, oh);
         ofp_print_ofpst_group_request(string, oh);
@@ -3740,7 +3750,7 @@ ofp_to_string(const void *oh_, size_t len, int verbosity)
     ds_put_hex_dump(&string, oh, len, 0, true);
     return ds_steal_cstr(&string);
 }
-
+
 static void
 print_and_free(FILE *stream, char *string)
 {

@@ -26,6 +26,7 @@ AM_CPPFLAGS += -I $(top_srcdir)/include
 AM_CPPFLAGS += -I $(top_builddir)/include
 AM_CPPFLAGS += -I $(top_srcdir)/lib
 AM_CPPFLAGS += -I $(top_builddir)/lib
+AM_CPPFLAGS += -I/usr/include/libnl3/
 
 AM_CPPFLAGS += $(SSL_INCLUDES)
 
@@ -349,7 +350,7 @@ ALL_LOCAL += flake8-check
 #   H233 Python 3.x incompatible use of print operator
 #   H238 old style class declaration, use new style (inherit from `object`)
 FLAKE8_SELECT = H231,H232,H233,H238
-FLAKE8_IGNORE = E121,E123,E125,E126,E127,E128,E129,E131,W503,F811,D,H,I
+FLAKE8_IGNORE = E121,E123,E125,E126,E127,E128,E129,E131,E501,W503,F811,D,H,I
 flake8-check: $(FLAKE8_PYFILES)
 	$(AM_V_GEN) \
 	  src='$^' && \

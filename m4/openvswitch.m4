@@ -606,6 +606,27 @@ AC_DEFUN([OVS_CHECK_PRAGMA_MESSAGE],
      message directive])])
   ])
 
+dnl OVS_ENABLE_CN_STATS
+AC_DEFUN([OVS_ENABLE_CN_STATS],
+  [AC_ARG_ENABLE(
+     [cn_stats],
+     [AC_HELP_STRING([--enable-cn-stats],
+                     [Enable Classifier Node Statistics Gathering])],
+     [case "${enableval}" in
+        (yes) cn_stats=true ;;
+        (no)  cn_stats=false ;;
+        (*) AC_MSG_ERROR([bad value ${enableval} for --enable-cn-stats]) ;;
+      esac],
+      [cn_stats=false])
+     AM_CONDITIONAL([cn_stats], [test "${enableval}" = yes])
+     if test "$cn_stats" = true; then
+        AC_DEFINE([ENABLE_CN_STATS], [1], [Define to 1 if Classifier Node Stats 
+        Gathering is enabled])
+        OVS_CPPFLAGS="$OVS_CFLAGS -DK_ENABLE_CN_STATS"
+
+     fi
+])
+
 dnl OVS_LIBTOOL_VERSIONS sets the major, minor, micro version information for
 dnl OVS_LTINFO variable.  This variable locks libtool information for shared
 dnl objects, allowing multiple versions with different ABIs to coexist.

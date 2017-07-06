@@ -63,6 +63,10 @@
 #include "unixctl.h"
 #include "util.h"
 
+#ifdef ENABLE_CN_STATS
+#include "cn_userspace.h"
+#endif
+
 VLOG_DEFINE_THIS_MODULE(ofproto);
 
 COVERAGE_DEFINE(ofproto_flush);
@@ -923,7 +927,7 @@ ofproto_get_flow_restore_wait(void)
     return flow_restore_wait;
 }
 
-
+
 /* Spanning Tree Protocol (STP) configuration. */
 
 /* Configures STP on 'ofproto' using the settings defined in 's'.  If
@@ -1098,7 +1102,7 @@ ofproto_port_get_rstp_status(struct ofproto *ofproto, ofp_port_t ofp_port,
     ofproto->ofproto_class->get_rstp_port_status(ofport, s);
     return 0;
 }
-
+
 /* Queue DSCP configuration. */
 
 /* Registers meta-data associated with the 'n_qdscp' Qualities of Service
@@ -1125,7 +1129,7 @@ ofproto_port_set_queues(struct ofproto *ofproto, ofp_port_t ofp_port,
             ? ofproto->ofproto_class->set_queues(ofport, queues, n_queues)
             : EOPNOTSUPP);
 }
-
+
 /* LLDP configuration. */
 void
 ofproto_port_set_lldp(struct ofproto *ofproto,
@@ -1328,7 +1332,7 @@ ofproto_port_get_lacp_stats(const struct ofport *port, struct lacp_slave_stats *
 
     return error;
 }
-
+
 /* Bundles. */
 
 /* Registers a "bundle" associated with client data pointer 'aux' in 'ofproto'.
@@ -1359,7 +1363,7 @@ ofproto_bundle_unregister(struct ofproto *ofproto, void *aux)
     return ofproto_bundle_register(ofproto, aux, NULL);
 }
 
-
+
 /* Registers a mirror associated with client data pointer 'aux' in 'ofproto'.
  * If 'aux' is already registered then this function updates its configuration
  * to 's'.  Otherwise, this function registers a new mirror. */
@@ -1421,7 +1425,7 @@ ofproto_is_mirror_output_bundle(const struct ofproto *ofproto, void *aux)
             ? ofproto->ofproto_class->is_mirror_output_bundle(ofproto, aux)
             : false);
 }
-
+
 /* Configuration of OpenFlow tables. */
 
 /* Returns the number of OpenFlow tables in 'ofproto'. */
@@ -1483,7 +1487,7 @@ ofproto_configure_table(struct ofproto *ofproto, int table_id,
     evict_rules_from_table(table);
     ovs_mutex_unlock(&ofproto_mutex);
 }
-
+
 bool
 ofproto_has_snoops(const struct ofproto *ofproto)
 {
@@ -2224,7 +2228,7 @@ ofproto_flush_flows(struct ofproto *ofproto)
     ofproto_flush__(ofproto);
     connmgr_flushed(ofproto->connmgr);
 }
-
+
 static void
 reinit_ports(struct ofproto *p)
 {
@@ -2814,7 +2818,7 @@ update_mtu_ofproto(struct ofproto *p)
         }
     }
 }
-
+
 static void
 ofproto_rule_destroy__(struct rule *rule)
     OVS_NO_THREAD_SAFETY_ANALYSIS
@@ -3081,7 +3085,7 @@ rule_is_readonly(const struct rule *rule)
     const struct oftable *table = &rule->ofproto->tables[rule->table_id];
     return (table->flags & OFTABLE_READONLY) != 0;
 }
-
+
 static uint32_t
 hash_learned_cookie(ovs_be64 cookie_, uint8_t table_id)
 {
@@ -3195,7 +3199,7 @@ learned_cookies_flush(struct ofproto *ofproto, struct ovs_list *dead_cookies)
         free(c);
     }
 }
-
+
 static enum ofperr
 handle_echo_request(struct ofconn *ofconn, const struct ofp_header *oh)
 {
@@ -4858,7 +4862,7 @@ add_flow_finish(struct ofproto *ofproto, struct ofproto_flow_mod *ofm,
         send_table_status(ofproto, new_rule->table_id);
     }
 }
-
+
 /* OFPFC_MODIFY and OFPFC_MODIFY_STRICT. */
 
 /* Create a new rule.  Note that the rule is NOT inserted into a any data
@@ -5500,7 +5504,7 @@ modify_flow_start_strict(struct ofproto *ofproto, struct ofproto_flow_mod *ofm)
 
     return error;
 }
-
+
 /* OFPFC_DELETE implementation. */
 
 static void
@@ -5777,7 +5781,7 @@ ofproto_rule_reduce_timeouts(struct rule *rule,
     reduce_timeout(hard_timeout, &rule->hard_timeout);
     ovs_mutex_unlock(&rule->mutex);
 }
-
+
 static enum ofperr
 handle_flow_mod(struct ofconn *ofconn, const struct ofp_header *oh)
     OVS_EXCLUDED(ofproto_mutex)
@@ -8156,6 +8160,17 @@ handle_openflow__(struct ofconn *ofconn, const struct ofpbuf *msg)
     case OFPTYPE_CT_FLUSH_ZONE:
         return handle_nxt_ct_flush_zone(ofconn, oh);
 
+#ifdef ENABLE_CN_STATS
+    case OFPTYPE_NETLINK_REQUEST:
+        return handle_nxst_netlink_request(ofconn, oh);
+
+    case OFPTYPE_NETLINK_DISABLE:
+        return handle_nxt_netlink_disable();
+
+    case OFPTYPE_NETLINK_ENABLE:
+        return handle_nxt_netlink_enable();
+#endif
+
     case OFPTYPE_HELLO:
     case OFPTYPE_ERROR:
     case OFPTYPE_FEATURES_REPLY:
@@ -8191,6 +8206,9 @@ handle_openflow__(struct ofconn *ofconn, const struct ofpbuf *msg)
     case OFPTYPE_NXT_TLV_TABLE_REPLY:
     case OFPTYPE_IPFIX_BRIDGE_STATS_REPLY:
     case OFPTYPE_IPFIX_FLOW_STATS_REPLY:
+#ifdef ENABLE_CN_STATS
+    case OFPTYPE_NETLINK_REPLY:
+#endif
     default:
         if (ofpmsg_is_stat_request(oh)) {
             return OFPERR_OFPBRC_BAD_STAT;
@@ -8211,7 +8229,7 @@ handle_openflow(struct ofconn *ofconn, const struct ofpbuf *ofp_msg)
     }
     COVERAGE_INC(ofproto_recv_openflow);
 }
-
+
 static uint64_t
 pick_datapath_id(const struct ofproto *ofproto)
 {
@@ -8240,7 +8258,7 @@ pick_fallback_dpid(void)
     eth_addr_nicira_random(&ea);
     return eth_addr_to_uint64(ea);
 }
-
+
 /* Table overflow policy. */
 
 /* Chooses and updates 'rulep' with a rule to evict from 'table'.  Sets 'rulep'
@@ -8281,7 +8299,7 @@ choose_rule_to_evict(struct oftable *table, struct rule **rulep)
 
     return false;
 }
-
+
 /* Eviction groups. */
 
 /* Returns the priority to use for an eviction_group that contains 'n_rules'
@@ -8486,7 +8504,7 @@ eviction_group_add_rule(struct rule *rule)
         eviction_group_resized(table, evg);
     }
 }
-
+
 /* oftables. */
 
 /* Initializes 'table'. */
@@ -8681,7 +8699,7 @@ ofproto_rule_remove__(struct ofproto *ofproto, struct rule *rule)
 
     rule->state = RULE_REMOVED;
 }
-
+
 /* unixctl commands. */
 
 struct ofproto *

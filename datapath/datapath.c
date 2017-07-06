@@ -61,6 +61,10 @@
 #include "vport-internal_dev.h"
 #include "vport-netdev.h"
 
+#ifdef K_ENABLE_CN_STATS
+#include "cn_kernel.h"
+#endif /* K_ENABLE_CN_STATS */
+
 unsigned int ovs_net_id __read_mostly;
 
 static struct genl_family dp_packet_genl_family;
@@ -271,6 +275,13 @@ void ovs_dp_process_packet(struct sk_buff *skb, struct sw_flow_key *key)
 	/* Look up flow. */
 	flow = ovs_flow_tbl_lookup_stats(&dp->table, key, skb_get_hash(skb),
 					 &n_mask_hit);
+#ifdef K_ENABLE_CN_STATS
+	/* Update NLClient Kernel Linked List */
+	if (likely(cn_k_stats_enabled))
+		if ((key->ip.proto == 6) || (key->ip.proto == 17))
+			per_flow_stats_update(key, packet_length(skb));
+#endif
+
 	if (unlikely(!flow)) {
 		struct dp_upcall_info upcall;
 		int error;
@@ -2257,6 +2268,9 @@ struct genl_family dp_vport_genl_family __ro_after_init = {
 };
 
 static struct genl_family *dp_genl_families[] = {
+#ifdef K_ENABLE_CN_STATS
+        &stats_table_gnl_family,
+#endif
 	&dp_datapath_genl_family,
 	&dp_vport_genl_family,
 	&dp_flow_genl_family,

@@ -401,7 +401,7 @@ AC_DEFUN([OVS_CHECK_LINUX_COMPAT], [
 #define RHEL_RELEASE_CODE 0
 #define RHEL_RELEASE_VERSION(a, b) 0
 #endif' >> datapath/linux/kcompat.h.new
-
+  OVS_DEFINE([K_ENABLE_CN_STATS])
   OVS_GREP_IFELSE([$KSRC/arch/x86/include/asm/checksum_32.h], [src_err,],
                   [OVS_DEFINE([HAVE_CSUM_COPY_DBG])])
 

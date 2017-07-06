@@ -42,6 +42,10 @@
 #include "timeval.h"
 #include "util.h"
 
+#ifdef ENABLE_CN_STATS
+#include "cn_userspace.h"
+#endif
+
 VLOG_DEFINE_THIS_MODULE(connmgr);
 static struct vlog_rate_limit rl = VLOG_RATE_LIMIT_INIT(1, 5);
 
@@ -352,6 +356,14 @@ connmgr_run(struct connmgr *mgr,
     struct ofservice *ofservice;
     size_t i;
 
+#ifdef ENABLE_CN_STATS
+    struct stats_queue *queue_old;
+    struct ovs_list replies;
+
+    nxst_stats_msg_init();
+    cn_init_queue(&replies);
+#endif
+
     if (mgr->in_band) {
         if (!in_band_run(mgr->in_band)) {
             in_band_destroy(mgr->in_band);
@@ -361,7 +373,14 @@ connmgr_run(struct connmgr *mgr,
 
     LIST_FOR_EACH_SAFE (ofconn, next_ofconn, node, &mgr->all_conns) {
         ofconn_run(ofconn, handle_openflow);
+#ifdef ENABLE_CN_STATS
+        cn_send_to_controller(ofconn, &queue_old, &replies);
+#endif
     }
+#ifdef ENABLE_CN_STATS
+    cn_free_queue(&queue_old);
+#endif
+
     ofmonitor_run(mgr);
 
     /* Fail-open maintenance.  Do this after processing the ofconns since
@@ -469,7 +488,7 @@ ofconn_get_ofproto(const struct ofconn *ofconn)
 {
     return ofconn->connmgr->ofproto;
 }
-
+
 /* OpenFlow configuration. */
 
 static void add_controller(struct connmgr *, const char *target, uint8_t dscp,
@@ -901,7 +920,7 @@ add_snooper(struct connmgr *mgr, struct vconn *vconn)
         vconn_close(vconn);
     }
 }
-
+
 /* Public ofconn functions. */
 
 /* Returns the connection type, either OFCONN_PRIMARY or OFCONN_SERVICE. */
@@ -1199,7 +1218,7 @@ ofconn_report_flow_mod(struct ofconn *ofconn,
     }
     ofconn->last_op = now;
 }
-
+
 /* OpenFlow 1.4 bundles. */
 
 static inline uint32_t
@@ -1261,7 +1280,7 @@ bundle_remove_expired(struct ofconn *ofconn, long long int now)
         }
     }
 }
-
+
 /* Private ofconn functions. */
 
 static const char *
@@ -1597,7 +1616,7 @@ ofconn_send(const struct ofconn *ofconn, struct ofpbuf *msg,
     ofpmsg_update_length(msg);
     rconn_send(ofconn->rconn, msg, counter);
 }
-
+
 /* Sending asynchronous messages. */
 
 /* Sends an OFPT_PORT_STATUS message with 'opp' and 'reason' to appropriate
@@ -1773,7 +1792,7 @@ do_send_packet_ins(struct ofconn *ofconn, struct ovs_list *txq)
         }
     }
 }
-
+
 /* Fail-open settings. */
 
 /* Returns the failure handling mode (OFPROTO_FAIL_SECURE or
@@ -1797,7 +1816,7 @@ connmgr_set_fail_mode(struct connmgr *mgr, enum ofproto_fail_mode fail_mode)
         }
     }
 }
-
+
 /* Fail-open implementation. */
 
 /* Returns the longest probe interval among the primary controllers configured
@@ -1866,7 +1885,7 @@ connmgr_is_any_controller_admitted(const struct connmgr *mgr)
     }
     return false;
 }
-
+
 /* In-band configuration. */
 
 static bool any_extras_changed(const struct connmgr *,
@@ -1924,7 +1943,7 @@ any_extras_changed(const struct connmgr *mgr,
 
     return false;
 }
-
+
 /* In-band implementation. */
 
 bool
@@ -1932,7 +1951,7 @@ connmgr_has_in_band(struct connmgr *mgr)
 {
     return mgr->in_band != NULL;
 }
-
+
 /* Fail-open and in-band implementation. */
 
 /* Called by 'ofproto' after all flows have been flushed, to allow fail-open
@@ -1983,7 +2002,7 @@ connmgr_count_hidden_rules(const struct connmgr *mgr)
     }
     return n_hidden;
 }
-
+
 /* Creates a new ofservice for 'target' in 'mgr'.  Returns 0 if successful,
  * otherwise a positive errno value.
  *
@@ -2044,7 +2063,7 @@ ofservice_lookup(struct connmgr *mgr, const char *target)
     }
     return NULL;
 }
-
+
 /* Flow monitors (NXST_FLOW_MONITOR). */
 
 /* A counter incremented when something significant happens to an OpenFlow
