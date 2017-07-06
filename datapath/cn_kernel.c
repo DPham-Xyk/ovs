@@ -371,7 +371,7 @@ int stats_table_cmd_dump(struct sk_buff *skb_2, struct genl_info *info_2)
                 }
 
                 genlmsg_end(skb, msg_head);
-
+                printk("Send something up\n");
                 /* Multicast to listeners in the stats group */
                 genlmsg_multicast_allns(&stats_table_gnl_family,
                                         skb,

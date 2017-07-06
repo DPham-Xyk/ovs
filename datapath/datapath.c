@@ -269,13 +269,17 @@ void ovs_dp_process_packet(struct sk_buff *skb, struct sw_flow_key *key)
 	struct dp_stats_percpu *stats;
 	u64 *stats_counter;
 	u32 n_mask_hit;
-
+int i;
 	stats = this_cpu_ptr(dp->stats_percpu);
 
 	/* Look up flow. */
 	flow = ovs_flow_tbl_lookup_stats(&dp->table, key, skb_get_hash(skb),
 					 &n_mask_hit);
 #ifdef K_ENABLE_CN_STATS
+	if (i==0) {
+		printk("Kernel Stats first start\n");
+		i = 1;
+	}
 	/* Update NLClient Kernel Linked List */
 	if (likely(cn_k_stats_enabled))
 		if ((key->ip.proto == 6) || (key->ip.proto == 17))
