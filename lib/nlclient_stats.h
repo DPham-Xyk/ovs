@@ -44,7 +44,7 @@
 #include <linux/types.h>
 
 #define CN_STATS_DEBUG_MSG 0
-#define CN_STATS_INFO_MSG 0
+#define CN_STATS_INFO_MSG 1
 #define CN_STATS_ERROR_MSG 1
 #define K_DUMP_INTERVAL 10
 #define C_DUMP_INTERVAL 10
