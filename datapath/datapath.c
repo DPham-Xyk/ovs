@@ -269,7 +269,7 @@ void ovs_dp_process_packet(struct sk_buff *skb, struct sw_flow_key *key)
 	struct dp_stats_percpu *stats;
 	u64 *stats_counter;
 	u32 n_mask_hit;
-int i;
+	int i;
 	stats = this_cpu_ptr(dp->stats_percpu);
 
 	/* Look up flow. */
