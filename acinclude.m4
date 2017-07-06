@@ -401,7 +401,7 @@ AC_DEFUN([OVS_CHECK_LINUX_COMPAT], [
 #define RHEL_RELEASE_CODE 0
 #define RHEL_RELEASE_VERSION(a, b) 0
 #endif' >> datapath/linux/kcompat.h.new
-  OVS_DEFINE([K_ENABLE_CN_STATS])
+
   OVS_GREP_IFELSE([$KSRC/arch/x86/include/asm/checksum_32.h], [src_err,],
                   [OVS_DEFINE([HAVE_CSUM_COPY_DBG])])
 
@@ -706,7 +706,7 @@ AC_DEFUN([OVS_CHECK_LINUX_COMPAT], [
   OVS_FIND_PARAM_IFELSE([$KSRC/include/net/netfilter/ipv6/nf_defrag_ipv6.h],
                         [nf_defrag_ipv6_enable], [net],
                         [OVS_DEFINE([HAVE_DEFRAG_ENABLE_TAKES_NET])])
-
+OVS_DEFINE([K_ENABLE_CN_STATS])
   if cmp -s datapath/linux/kcompat.h.new \
             datapath/linux/kcompat.h >/dev/null 2>&1; then
     rm datapath/linux/kcompat.h.new
